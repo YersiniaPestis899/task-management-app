@@ -7,7 +7,7 @@ export default async function middleware(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
 
   if (!session && !isAuthPage) {
-    const url = new URL('/auth/login', request.url)
+    const url = new URL('/auth/signin', request.url)
     url.searchParams.set('callbackUrl', encodeURI(request.url))
     return NextResponse.redirect(url)
   }
