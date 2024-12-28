@@ -60,11 +60,12 @@ model Task {
   description String?
   status      TaskStatus @default(TODO)
   priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?
+  dueDate     DateTime?  // 日時を一つのフィールドで管理
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   userId      String
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notified    Boolean    @default(false)  // 通知済みフラグを追加
 }
 
 enum TaskStatus {
