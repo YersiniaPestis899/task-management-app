@@ -1,7 +1,15 @@
-import NextAuth from 'next-auth'
+import NextAuth, { DefaultSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/app/lib/prisma'
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+    } & DefaultSession['user']
+  }
+}
 
 const config = {
   providers: [
@@ -12,13 +20,13 @@ const config = {
   ],
   adapter: PrismaAdapter(prisma) as any,
   callbacks: {
-    session: async ({ session, token }) => {
+    session: async ({ session, token }: { session: any; token: any }) => {
       if (session?.user) {
-        session.user.id = token.sub!
+        session.user.id = token.sub
       }
       return session
     },
-    jwt: async ({ token, user }) => {
+    async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.id = user.id
       }
