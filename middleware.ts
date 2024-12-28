@@ -9,22 +9,22 @@ export default auth((req) => {
     if (isAuthed) {
       return NextResponse.redirect(new URL('/', req.url))
     }
-    return null
   }
 
-  if (!isAuthed) {
-    return NextResponse.redirect(
-      new URL('/auth/signin', req.url)
-    )
+  if (!isAuthed && !isAuthPage) {
+    let from = req.nextUrl.pathname
+    if (req.nextUrl.search) {
+      from += req.nextUrl.search
+    }
+    
+    return NextResponse.redirect(new URL('/auth/signin', req.url))
   }
-
-  return null
 })
 
 export const config = {
   matcher: [
     '/',
     '/auth/signin',
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)'
   ]
 }
