@@ -20,14 +20,14 @@ export default function TaskEditModal({
     if (!dateStr) return '';
     const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0];
+    return date.toLocaleDateString('sv-SE'); // ISO形式の日付（YYYY-MM-DD）
   };
 
   const formatTimeForInput = (dateStr: Date | string | null): string => {
     if (!dateStr) return '';
     const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[1].substring(0, 5);
+    return date.toLocaleTimeString('sv-SE').substring(0, 5);
   };
 
   const [editedTask, setEditedTask] = useState({
@@ -42,9 +42,12 @@ export default function TaskEditModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const combinedDateTime = editedTask.dueDate && editedTask.dueTime
-        ? new Date(`${editedTask.dueDate}T${editedTask.dueTime}:00.000Z`)
-        : null;
+      let combinedDateTime = null;
+      if (editedTask.dueDate && editedTask.dueTime) {
+        // ローカル時間での日時文字列を作成
+        const dateTimeStr = `${editedTask.dueDate}T${editedTask.dueTime}`;
+        combinedDateTime = new Date(dateTimeStr);
+      }
 
       const updatedTask = {
         ...task,
