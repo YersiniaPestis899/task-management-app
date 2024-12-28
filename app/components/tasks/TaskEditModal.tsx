@@ -1,6 +1,7 @@
 'use client';
 
 import { Task } from '@prisma/client';
+import { useState } from 'react';
 
 interface TaskEditModalProps {
   task: Task;
@@ -15,20 +16,30 @@ export default function TaskEditModal({
   onClose,
   onUpdate
 }: TaskEditModalProps) {
+  const formatDateForInput = (date: Date | null): string => {
+    if (!date) return '';
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatTimeForInput = (date: Date | null): string => {
+    if (!date) return '';
+    return date.toISOString().split('T')[1].substring(0, 5);
+  };
+
   const [editedTask, setEditedTask] = useState({
     title: task.title,
     description: task.description || '',
     priority: task.priority,
     status: task.status,
-    dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-    dueTime: task.dueDate ? task.dueDate.split('T')[1].substring(0, 5) : ''
+    dueDate: formatDateForInput(task.dueDate),
+    dueTime: formatTimeForInput(task.dueDate)
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const combinedDateTime = editedTask.dueDate && editedTask.dueTime
-        ? `${editedTask.dueDate}T${editedTask.dueTime}`
+        ? new Date(`${editedTask.dueDate}T${editedTask.dueTime}:00.000Z`)
         : null;
 
       const updatedTask = {
