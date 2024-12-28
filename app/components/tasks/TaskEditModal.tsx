@@ -16,13 +16,17 @@ export default function TaskEditModal({
   onClose,
   onUpdate
 }: TaskEditModalProps) {
-  const formatDateForInput = (date: Date | null): string => {
-    if (!date) return '';
+  const formatDateForInput = (dateStr: Date | string | null): string => {
+    if (!dateStr) return '';
+    const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return date.toISOString().split('T')[0];
   };
 
-  const formatTimeForInput = (date: Date | null): string => {
-    if (!date) return '';
+  const formatTimeForInput = (dateStr: Date | string | null): string => {
+    if (!dateStr) return '';
+    const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return date.toISOString().split('T')[1].substring(0, 5);
   };
 
