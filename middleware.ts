@@ -1,34 +1,25 @@
 import { NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { auth } from './app/lib/auth'
 
-export async function middleware(req) {
-  const token = await getToken({ req })
-  const isAuth = !!token
+export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/auth')
+  const isAuthed = !!req.auth
 
-  // ルートページへのアクセス時の処理
-  if (req.nextUrl.pathname === '/') {
-    if (!isAuth) {
-      return NextResponse.redirect(new URL('/auth/signin', req.url))
-    }
-    return null
-  }
-
-  // 認証ページへのアクセス時の処理
   if (isAuthPage) {
-    if (isAuth) {
+    if (isAuthed) {
       return NextResponse.redirect(new URL('/', req.url))
     }
     return null
   }
 
-  // 保護されたルートへのアクセス時の処理
-  if (!isAuth) {
-    return NextResponse.redirect(new URL('/auth/signin', req.url))
+  if (!isAuthed) {
+    return NextResponse.redirect(
+      new URL('/auth/signin', req.url)
+    )
   }
 
   return null
-}
+})
 
 export const config = {
   matcher: [
