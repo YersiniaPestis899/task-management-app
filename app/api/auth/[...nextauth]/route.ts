@@ -11,7 +11,7 @@ declare module 'next-auth' {
   }
 }
 
-const config = {
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -36,14 +36,6 @@ const config = {
   pages: {
     signIn: '/auth/signin'
   }
-}
+})
 
-const handler = NextAuth(config)
-
-export async function GET(req: Request) {
-  return handler(req)
-}
-
-export async function POST(req: Request) {
-  return handler(req)
-}
+export { handler as GET, handler as POST }
