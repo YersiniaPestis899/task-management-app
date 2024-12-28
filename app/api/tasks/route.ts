@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
-import { TaskStatus, Priority } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -42,8 +41,7 @@ export async function POST(req: Request) {
       data: {
         title,
         description,
-        priority: priority as Priority,
-        status: TaskStatus.TODO,
+        priority,
         dueDate: dueDate ? new Date(dueDate) : null,
         userId: session.user.id
       }
