@@ -49,7 +49,6 @@ export const {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // より簡素で堅牢なリダイレクト処理
       if (url.startsWith(baseUrl)) return url
       if (url.startsWith('/')) return `${baseUrl}${url}`
       return baseUrl
@@ -59,18 +58,5 @@ export const {
     signIn: '/auth/signin',
     error: '/auth/error'
   },
-  debug: process.env.NODE_ENV === 'development',
-  logger: {
-    error(code, metadata) {
-      console.error('Auth Error:', code, metadata)
-    },
-    warn(code) {
-      console.warn('Auth Warning:', code)
-    },
-    debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('Auth Debug:', code, metadata)
-      }
-    }
-  }
+  debug: process.env.NODE_ENV === 'development'
 })
