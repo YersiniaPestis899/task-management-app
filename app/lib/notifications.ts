@@ -28,8 +28,13 @@ export async function scheduleNotification(task: any) {
   if (!task.dueDate) return;
 
   const now = new Date();
+  const localOffset = now.getTimezoneOffset() * 60000; // ローカルタイムオフセットをミリ秒で取得
+  const localNow = new Date(now.getTime() - localOffset); // ローカル時間に変換
+  
   const dueDate = new Date(task.dueDate);
-  const timeDiff = dueDate.getTime() - now.getTime();
+  const localDueDate = new Date(dueDate.getTime() - localOffset); // 期限をローカル時間に変換
+  
+  const timeDiff = localDueDate.getTime() - localNow.getTime();
 
   if (timeDiff <= 0) return;
 
@@ -37,12 +42,13 @@ export async function scheduleNotification(task: any) {
     try {
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification('Task Reminder', {
-        body: `Task "${task.title}" is due soon!`,
+        body: `Task "${task.title}" is due at ${localDueDate.toLocaleTimeString()}!`,
         icon: '/icon.png',
         badge: '/badge.png',
         vibrate: [100, 50, 100],
         data: {
-          taskId: task.id
+          taskId: task.id,
+          dueDate: localDueDate.toLocaleString() // ローカル時間での期限を追加
         }
       });
     } catch (error) {

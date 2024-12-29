@@ -2,12 +2,14 @@ import { prisma } from './prisma';
 
 export async function checkAndScheduleNotifications() {
   const now = new Date();
-  const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60000);
+  const localOffset = now.getTimezoneOffset() * 60000; // ローカルタイムオフセットをミリ秒で取得
+  const localNow = new Date(now.getTime() - localOffset); // ローカル時間に変換
+  const thirtyMinutesFromNow = new Date(localNow.getTime() + 30 * 60000);
 
   const upcomingTasks = await prisma.task.findMany({
     where: {
       dueDate: {
-        gt: now,
+        gt: localNow,
         lte: thirtyMinutesFromNow
       },
       notified: false,
@@ -19,16 +21,20 @@ export async function checkAndScheduleNotifications() {
 
   for (const task of upcomingTasks) {
     try {
+      const taskDueDate = new Date(task.dueDate!.getTime() - localOffset);
+      const timeUntilDue = Math.round((taskDueDate.getTime() - localNow.getTime()) / 60000);
+
       // Service Workerを通じて通知を送信
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification('Task Due Soon!', {
-        body: `Task "${task.title}" is due in ${Math.round((task.dueDate!.getTime() - now.getTime()) / 60000)} minutes!`,
+        body: `Task "${task.title}" is due in ${timeUntilDue} minutes!`,
         icon: '/icon.png',
         badge: '/badge.png',
         vibrate: [100, 50, 100],
         data: {
           taskId: task.id,
-          url: '/'
+          url: '/',
+          dueDate: taskDueDate.toLocaleString() // ローカル時間での期限を追加
         },
         actions: [
           {
