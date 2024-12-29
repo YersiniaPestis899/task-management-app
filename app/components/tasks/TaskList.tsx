@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Task } from '@prisma/client';
 import TaskEditModal from './TaskEditModal';
+import NotificationTimingSelect from './NotificationTimingSelect';
 import { registerServiceWorker, requestNotificationPermission, scheduleNotification } from '@/app/lib/notifications';
+import { NotificationTiming } from '@/app/types';
 
 // 日付をローカル時間に変換するユーティリティ関数
 const formatLocalDateTime = (dateStr: string | Date | null): string => {
@@ -31,7 +33,8 @@ export default function TaskList() {
     description: '',
     priority: 'MEDIUM',
     dueDate: '',
-    dueTime: ''
+    dueTime: '',
+    notificationTimings: [{ minutes: 30, enabled: true }] as NotificationTiming[]
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const router = useRouter();
@@ -56,7 +59,6 @@ export default function TaskList() {
       const response = await fetch('/api/tasks');
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
-      // データ取得時に日付をDateオブジェクトに変換
       const tasksWithParsedDates = data.map((task: Task) => ({
         ...task,
         dueDate: task.dueDate ? new Date(task.dueDate) : null
@@ -78,7 +80,8 @@ export default function TaskList() {
 
       const taskData = {
         ...newTask,
-        dueDate: combinedDateTime
+        dueDate: combinedDateTime,
+        notificationTimings: newTask.notificationTimings.filter(timing => timing.enabled)
       };
 
       const response = await fetch('/api/tasks', {
@@ -98,7 +101,14 @@ export default function TaskList() {
 
       await fetchTasks();
       setIsModalOpen(false);
-      setNewTask({ title: '', description: '', priority: 'MEDIUM', dueDate: '', dueTime: '' });
+      setNewTask({
+        title: '',
+        description: '',
+        priority: 'MEDIUM',
+        dueDate: '',
+        dueTime: '',
+        notificationTimings: [{ minutes: 30, enabled: true }]
+      });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -200,6 +210,12 @@ export default function TaskList() {
                   />
                 </div>
               </div>
+
+              <NotificationTimingSelect
+                timings={newTask.notificationTimings}
+                onChange={(timings) => setNewTask({ ...newTask, notificationTimings: timings })}
+              />
+
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
