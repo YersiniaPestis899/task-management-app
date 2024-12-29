@@ -30,8 +30,10 @@ export const {
   callbacks: {
     async signIn({ account, profile }) {
       if (!profile?.email) {
+        console.log('Sign in failed: No email provided');
         return false;
       }
+      console.log('Sign in successful:', profile.email);
       return true;
     },
     async jwt({ token, user, account }) {
@@ -50,32 +52,31 @@ export const {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // For relative URLs, prepend the base URL
+      // デバッグログ
+      console.log('Redirect params:', { url, baseUrl });
+
+      // 相対URLの処理
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+        const fullUrl = `${baseUrl}${url}`;
+        console.log('Redirecting to full URL:', fullUrl);
+        return fullUrl;
       }
-      // Allow redirects to the same origin
-      else if (new URL(url).origin === baseUrl) {
+
+      // 同一オリジンの処理
+      if (url.startsWith(baseUrl)) {
+        console.log('Redirecting to same origin URL:', url);
         return url;
       }
-      // Default to home page for all other cases
+
+      // デフォルトリダイレクト
+      console.log('Redirecting to base URL:', baseUrl);
       return baseUrl;
-    }
-  },
-  events: {
-    async signIn({ user, account, profile }) {
-      console.log('User signed in:', user?.email);
-    },
-    async signOut({ session, token }) {
-      console.log('User signed out');
-    },
-    async error(error) {
-      console.error('Auth error:', error);
     }
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
     signOut: '/auth/signout'
-  }
+  },
+  debug: process.env.NODE_ENV === 'development'
 });
