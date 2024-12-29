@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
-import { NotificationTiming } from '@/app/types';
 
 interface RouteParams {
   params: {
@@ -17,45 +16,27 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const { id } = params;
-    const { title, description, priority, status, dueDate, notificationTimings } = await request.json();
+    const { title, description, priority, status, dueDate } = await request.json();
 
     // 既存のタスクを確認
     const existingTask = await prisma.task.findUnique({
-      where: { id },
-      include: { notificationTimings: true }
+      where: { id }
     });
 
     if (!existingTask) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // タスクの更新（トランザクションを使用）
-    const updatedTask = await prisma.$transaction(async (tx) => {
-      // 既存の通知タイミングを削除
-      await tx.notificationTiming.deleteMany({
-        where: { taskId: id }
-      });
-
-      // タスクと新しい通知タイミングを更新
-      return tx.task.update({
-        where: { id },
-        data: {
-          title,
-          description,
-          priority,
-          status,
-          dueDate: dueDate ? new Date(dueDate) : null,
-          notificationTimings: {
-            create: notificationTimings?.map((timing: NotificationTiming) => ({
-              minutes: timing.minutes,
-              enabled: timing.enabled
-            }))
-          }
-        },
-        include: {
-          notificationTimings: true
-        }
-      });
+    // タスクの更新
+    const updatedTask = await prisma.task.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        priority,
+        status,
+        dueDate: dueDate ? new Date(dueDate) : null
+      }
     });
 
     return NextResponse.json(updatedTask);

@@ -10,18 +10,6 @@ export const {
   signOut
 } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  debug: true,
-  logger: {
-    error: (code, metadata) => {
-      console.error('AUTH ERROR:', { code, metadata })
-    },
-    warn: (code) => {
-      console.warn('AUTH WARN:', code)
-    },
-    debug: (code, metadata) => {
-      console.log('AUTH DEBUG:', { code, metadata })
-    }
-  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -41,23 +29,34 @@ export const {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log('Sign-in attempt:', { user, account, profile })
-      return true
+      if (!profile?.email) return false
+      try {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: profile.email }
+        });
+        if (!existingUser) {
+          console.log('Creating new user:', profile.email);
+        }
+        return true;
+      } catch (error) {
+        console.error('Sign in error:', error);
+        return false;
+      }
     },
     async session({ session, user }) {
       if (session?.user) {
-        session.user.id = user.id
+        session.user.id = user.id;
       }
-      return session
+      return session;
     },
     async jwt({ token, user, account }) {
       if (account) {
-        token.accessToken = account.access_token
+        token.accessToken = account.access_token;
       }
       if (user) {
-        token.userId = user.id
+        token.userId = user.id;
       }
-      return token
+      return token;
     }
   },
   pages: {
