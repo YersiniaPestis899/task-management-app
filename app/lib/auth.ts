@@ -44,15 +44,11 @@ export const {
       if (user) {
         token.id = user.id;
       }
-      if (account) {
-        token.accessToken = account.access_token;
-      }
       return token;
     },
-    async session({ session, token, user }) {
+    async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.sub!;
-        session.user.accessToken = token.accessToken;
       }
       return session;
     },
