@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
+import { NotificationTiming } from '@/app/types';
 
 export async function GET() {
   try {
@@ -12,6 +13,9 @@ export async function GET() {
     const tasks = await prisma.task.findMany({
       where: {
         userId: session.user.id
+      },
+      include: {
+        notificationTimings: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -35,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, description, priority, dueDate } = await req.json();
+    const { title, description, priority, dueDate, notificationTimings } = await req.json();
 
     const task = await prisma.task.create({
       data: {
@@ -43,7 +47,16 @@ export async function POST(req: Request) {
         description,
         priority,
         dueDate: dueDate ? new Date(dueDate) : null,
-        userId: session.user.id
+        userId: session.user.id,
+        notificationTimings: {
+          create: notificationTimings?.map((timing: NotificationTiming) => ({
+            minutes: timing.minutes,
+            enabled: timing.enabled
+          }))
+        }
+      },
+      include: {
+        notificationTimings: true
       }
     });
 

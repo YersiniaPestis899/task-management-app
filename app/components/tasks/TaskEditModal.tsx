@@ -3,17 +3,13 @@
 import { Task } from '@prisma/client';
 import { useState } from 'react';
 import NotificationTimingSelect from './NotificationTimingSelect';
-
-interface NotificationTiming {
-  minutes: number;
-  enabled: boolean;
-}
+import { NotificationTiming, TaskWithNotifications } from '@/app/types';
 
 interface TaskEditModalProps {
   task: Task;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (updatedTask: Task & { notificationTimings: NotificationTiming[] }) => Promise<void>;
+  onUpdate: (updatedTask: Task) => Promise<void>;
 }
 
 export default function TaskEditModal({
@@ -36,6 +32,10 @@ export default function TaskEditModal({
     return date.toLocaleTimeString('sv-SE').substring(0, 5);
   };
 
+  const defaultNotificationTimings: NotificationTiming[] = [
+    { minutes: 30, enabled: true }
+  ];
+
   const [editedTask, setEditedTask] = useState({
     title: task.title,
     description: task.description || '',
@@ -43,9 +43,7 @@ export default function TaskEditModal({
     status: task.status,
     dueDate: formatDateForInput(task.dueDate),
     dueTime: formatTimeForInput(task.dueDate),
-    notificationTimings: task.notificationTimings || [
-      { minutes: 30, enabled: true }  // デフォルトで30分前に通知
-    ]
+    notificationTimings: (task as TaskWithNotifications).notificationTimings || defaultNotificationTimings
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,12 +57,15 @@ export default function TaskEditModal({
 
       const updatedTask = {
         ...task,
-        ...editedTask,
+        title: editedTask.title,
+        description: editedTask.description,
+        priority: editedTask.priority,
+        status: editedTask.status,
         dueDate: combinedDateTime,
         notificationTimings: editedTask.notificationTimings
       };
 
-      await onUpdate(updatedTask);
+      await onUpdate(updatedTask as Task);
       onClose();
     } catch (error) {
       console.error('Failed to update task:', error);
