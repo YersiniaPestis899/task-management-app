@@ -16,7 +16,9 @@ export const {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account"
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
         }
       }
     })
@@ -24,12 +26,12 @@ export const {
   session: { strategy: "jwt" },
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: `next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true
+        secure: process.env.NODE_ENV === 'production'
       }
     }
   },
@@ -47,13 +49,28 @@ export const {
       return session
     },
     async redirect({ url, baseUrl }) {
+      // より簡素で堅牢なリダイレクト処理
+      if (url.startsWith(baseUrl)) return url
       if (url.startsWith('/')) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
       return baseUrl
     }
   },
   pages: {
-    signIn: '/auth/signin'
+    signIn: '/auth/signin',
+    error: '/auth/error'
   },
-  debug: true
+  debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('Auth Error:', code, metadata)
+    },
+    warn(code) {
+      console.warn('Auth Warning:', code)
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Auth Debug:', code, metadata)
+      }
+    }
+  }
 })
