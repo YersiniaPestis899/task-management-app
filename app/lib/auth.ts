@@ -34,7 +34,6 @@ export const {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        // secure: process.env.NODE_ENV === 'production'  // モバイルテスト用に一時的に無効化
         secure: false
       }
     },
@@ -49,34 +48,34 @@ export const {
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      console.log('🔑 JWT Callback:', { tokenId: token.sub, userId: user?.id });
+      console.log('JWT Callback:', { tokenId: token.sub, userId: user?.id });
       if (user) {
         token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
-      console.log('📍 Session Callback:', { sessionUser: session?.user?.email, tokenId: token.sub });
+      console.log('Session Callback:', { sessionUser: session?.user?.email, tokenId: token.sub });
       if (session?.user) {
         session.user.id = token.sub!;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      console.log('🔀 Redirect Callback:', { url, baseUrl });
-      // ベースURLからの相対パスの場合
+      console.log('Redirect Callback:', { url, baseUrl });
+
       if (url.startsWith('/')) {
         const fullUrl = `${baseUrl}${url}`;
-        console.log('↪️ Redirecting to:', fullUrl);
+        console.log('Redirecting to:', fullUrl);
         return fullUrl;
       }
-      // 同一オリジンの場合
+
       if (url.startsWith(baseUrl)) {
-        console.log('↪️ Redirecting to:', url);
+        console.log('Redirecting to:', url);
         return url;
       }
-      // デフォルトはホームページ
-      console.log('↪️ Redirecting to baseUrl:', baseUrl);
+
+      console.log('Redirecting to baseUrl:', baseUrl);
       return baseUrl;
     }
   },
@@ -85,16 +84,5 @@ export const {
     error: '/auth/error',
     signOut: '/auth/signout'
   },
-  debug: true,
-  logger: {
-    error(code, metadata) {
-      console.error('🚨 Auth Error:', { code, metadata });
-    },
-    warn(code) {
-      console.warn('⚠️ Auth Warning:', code);
-    },
-    debug(code, metadata) {
-      console.log('🔍 Auth Debug:', { code, metadata });
-    }
-  }
+  debug: process.env.NODE_ENV === 'development'
 })
