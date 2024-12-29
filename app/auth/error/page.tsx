@@ -1,11 +1,13 @@
-'use client';
-
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ErrorPage() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+interface ErrorPageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default function ErrorPage({
+  searchParams,
+}: ErrorPageProps) {
+  const error = searchParams.error as string | null;
 
   const getErrorMessage = (errorCode: string | null) => {
     switch (errorCode) {
