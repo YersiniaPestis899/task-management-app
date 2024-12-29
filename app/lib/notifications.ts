@@ -49,12 +49,25 @@ export async function scheduleNotification(task: TaskWithNotifications) {
     const notificationTime = new Date(dueDate.getTime() - timing.minutes * 60000);
     const timeDiff = notificationTime.getTime() - now.getTime();
 
+    console.log('Scheduling notification:', {
+      task: task.title,
+      dueDate: dueDate.toLocaleString(),
+      notificationTime: notificationTime.toLocaleString(),
+      timeDiff,
+      timing
+    });
+
     // 未来の通知のみスケジュール
-    if (timeDiff <= 0) continue;
+    if (timeDiff <= 0) {
+      console.log('Skipping past notification');
+      continue;
+    }
 
     setTimeout(async () => {
       try {
         const registration = await navigator.serviceWorker.ready;
+        console.log('Showing notification for task:', task.title);
+        
         const timeDescription = timing.minutes === 0 
           ? 'now'
           : timing.minutes < 60 
