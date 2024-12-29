@@ -24,35 +24,71 @@ export async function requestNotificationPermission() {
   return permission;
 }
 
-export async function scheduleNotification(task: any) {
-  if (!task.dueDate) return;
+interface NotificationTiming {
+  minutes: number;
+  enabled: boolean;
+}
+
+interface TaskWithNotifications {
+  id: string;
+  title: string;
+  dueDate: Date | null;
+  notificationTimings: NotificationTiming[];
+}
+
+export async function scheduleNotification(task: TaskWithNotifications) {
+  if (!task.dueDate || !task.notificationTimings?.length) return;
 
   const now = new Date();
-  const localOffset = now.getTimezoneOffset() * 60000; // ローカルタイムオフセットをミリ秒で取得
-  const localNow = new Date(now.getTime() - localOffset); // ローカル時間に変換
-  
   const dueDate = new Date(task.dueDate);
-  const localDueDate = new Date(dueDate.getTime() - localOffset); // 期限をローカル時間に変換
   
-  const timeDiff = localDueDate.getTime() - localNow.getTime();
+  // 有効な通知タイミングをフィルタリング
+  const enabledTimings = task.notificationTimings.filter(timing => timing.enabled);
 
-  if (timeDiff <= 0) return;
+  for (const timing of enabledTimings) {
+    const notificationTime = new Date(dueDate.getTime() - timing.minutes * 60000);
+    const timeDiff = notificationTime.getTime() - now.getTime();
 
-  setTimeout(async () => {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification('Task Reminder', {
-        body: `Task "${task.title}" is due at ${localDueDate.toLocaleTimeString()}!`,
-        icon: '/icon.png',
-        badge: '/badge.png',
-        vibrate: [100, 50, 100],
-        data: {
-          taskId: task.id,
-          dueDate: localDueDate.toLocaleString() // ローカル時間での期限を追加
-        }
-      });
-    } catch (error) {
-      console.error('Error showing notification:', error);
-    }
-  }, Math.max(0, timeDiff - 30 * 60 * 1000)); // 30 minutes before due date
+    // 未来の通知のみスケジュール
+    if (timeDiff <= 0) continue;
+
+    setTimeout(async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const timeDescription = timing.minutes === 0 
+          ? 'now'
+          : timing.minutes < 60 
+            ? `${timing.minutes} minutes before due time`
+            : timing.minutes === 60 
+              ? '1 hour before due time'
+              : timing.minutes === 1440 
+                ? '1 day before due time'
+                : `${Math.floor(timing.minutes / 60)} hours before due time`;
+
+        await registration.showNotification('Task Reminder', {
+          body: `Task "${task.title}" is due ${timeDescription}!`,
+          icon: '/icon.png',
+          badge: '/badge.png',
+          vibrate: [100, 50, 100],
+          data: {
+            taskId: task.id,
+            dueDate: dueDate.toLocaleString(),
+            notificationTiming: timing
+          },
+          actions: [
+            {
+              action: 'view',
+              title: 'View Task'
+            },
+            {
+              action: 'complete',
+              title: 'Mark Complete'
+            }
+          ]
+        });
+      } catch (error) {
+        console.error('Error showing notification:', error);
+      }
+    }, timeDiff);
+  }
 }

@@ -6,6 +6,20 @@ import type { Task } from '@prisma/client';
 import TaskEditModal from './TaskEditModal';
 import { registerServiceWorker, requestNotificationPermission, scheduleNotification } from '@/app/lib/notifications';
 
+// 日付をローカル時間に変換するユーティリティ関数
+const formatLocalDateTime = (dateStr: string | Date | null): string => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
+};
+
 export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +56,12 @@ export default function TaskList() {
       const response = await fetch('/api/tasks');
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
-      setTasks(data);
+      // データ取得時に日付をDateオブジェクトに変換
+      const tasksWithParsedDates = data.map((task: Task) => ({
+        ...task,
+        dueDate: task.dueDate ? new Date(task.dueDate) : null
+      }));
+      setTasks(tasksWithParsedDates);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
     } finally {
@@ -54,7 +73,7 @@ export default function TaskList() {
     e.preventDefault();
     try {
       const combinedDateTime = newTask.dueDate && newTask.dueTime
-        ? `${newTask.dueDate}T${newTask.dueTime}`
+        ? new Date(`${newTask.dueDate}T${newTask.dueTime}`)
         : null;
 
       const taskData = {
@@ -242,7 +261,7 @@ export default function TaskList() {
               </span>
               {task.dueDate && (
                 <span className="text-sm text-gray-500">
-                  Due: {new Date(task.dueDate).toLocaleString()}
+                  Due: {formatLocalDateTime(task.dueDate)}
                 </span>
               )}
             </div>

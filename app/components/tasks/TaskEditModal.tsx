@@ -2,12 +2,18 @@
 
 import { Task } from '@prisma/client';
 import { useState } from 'react';
+import NotificationTimingSelect from './NotificationTimingSelect';
+
+interface NotificationTiming {
+  minutes: number;
+  enabled: boolean;
+}
 
 interface TaskEditModalProps {
   task: Task;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (updatedTask: Task) => Promise<void>;
+  onUpdate: (updatedTask: Task & { notificationTimings: NotificationTiming[] }) => Promise<void>;
 }
 
 export default function TaskEditModal({
@@ -20,7 +26,7 @@ export default function TaskEditModal({
     if (!dateStr) return '';
     const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('sv-SE'); // ISO形式の日付（YYYY-MM-DD）
+    return date.toLocaleDateString('sv-SE');
   };
 
   const formatTimeForInput = (dateStr: Date | string | null): string => {
@@ -36,7 +42,10 @@ export default function TaskEditModal({
     priority: task.priority,
     status: task.status,
     dueDate: formatDateForInput(task.dueDate),
-    dueTime: formatTimeForInput(task.dueDate)
+    dueTime: formatTimeForInput(task.dueDate),
+    notificationTimings: task.notificationTimings || [
+      { minutes: 30, enabled: true }  // デフォルトで30分前に通知
+    ]
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +53,6 @@ export default function TaskEditModal({
     try {
       let combinedDateTime = null;
       if (editedTask.dueDate && editedTask.dueTime) {
-        // ローカル時間での日時文字列を作成
         const dateTimeStr = `${editedTask.dueDate}T${editedTask.dueTime}`;
         combinedDateTime = new Date(dateTimeStr);
       }
@@ -52,7 +60,8 @@ export default function TaskEditModal({
       const updatedTask = {
         ...task,
         ...editedTask,
-        dueDate: combinedDateTime
+        dueDate: combinedDateTime,
+        notificationTimings: editedTask.notificationTimings
       };
 
       await onUpdate(updatedTask);
@@ -135,6 +144,11 @@ export default function TaskEditModal({
               />
             </div>
           </div>
+
+          <NotificationTimingSelect
+            timings={editedTask.notificationTimings}
+            onChange={(timings) => setEditedTask({ ...editedTask, notificationTimings: timings })}
+          />
 
           <div className="flex justify-end space-x-2">
             <button
