@@ -1,31 +1,37 @@
-self.addEventListener('push', function(event) {
-  const options = {
-    body: event.data.text(),
-    icon: '/icon.png',
-    badge: '/badge.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: '2'
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'View Task',
-        icon: '/check.png'
-      }
-    ]
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('Task Reminder', options)
-  );
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installed');
 });
 
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activated');
+});
+
+self.addEventListener('push', (event) => {
+  console.log('Push notification received', event);
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked', event);
   event.notification.close();
-  
-  event.waitUntil(
-    clients.openWindow('/')
-  );
+
+  const urlToOpen = new URL('/', self.location.origin).href;
+
+  const promiseChain = clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  })
+  .then((windowClients) => {
+    // 既に開いているウィンドウがあるか確認
+    let matchingClient = windowClients.find((windowClient) => {
+      return windowClient.url === urlToOpen;
+    });
+
+    if (matchingClient) {
+      return matchingClient.focus();
+    }
+    
+    return clients.openWindow(urlToOpen);
+  });
+
+  event.waitUntil(promiseChain);
 });
