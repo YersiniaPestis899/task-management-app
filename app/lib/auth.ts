@@ -23,10 +23,14 @@ export const {
       }
     })
   ],
-  session: { strategy: "jwt" },
+  session: { 
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
@@ -36,27 +40,32 @@ export const {
     }
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id
+        token.id = user.id;
       }
-      return token
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       if (session?.user) {
-        session.user.id = token.sub!
+        session.user.id = token.sub!;
+        session.user.accessToken = token.accessToken;
       }
-      return session
+      return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) return url
-      if (url.startsWith('/')) return `${baseUrl}${url}`
-      return baseUrl
+      console.log('Redirect callback:', { url, baseUrl });
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      return baseUrl;
     }
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error'
   },
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
 })

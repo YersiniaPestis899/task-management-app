@@ -3,28 +3,37 @@ import type { NextRequest } from 'next/server'
 import { auth } from '@/app/lib/auth'
 
 export default async function middleware(request: NextRequest) {
-  const session = await auth()
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
-
-  // APIルートはスキップ
-  if (isApiRoute) {
-    return NextResponse.next()
+  console.log('Middleware - Path:', request.nextUrl.pathname);
+  
+  // 特定のパスはスキップ
+  if (
+    request.nextUrl.pathname.startsWith('/_next') ||
+    request.nextUrl.pathname.startsWith('/api') ||
+    request.nextUrl.pathname.includes('/favicon.ico')
+  ) {
+    return NextResponse.next();
   }
 
-  // 未認証かつ認証ページでない場合
+  const session = await auth();
+  console.log('Middleware - Session status:', !!session);
+
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
+
+  // 未認証ユーザーの処理
   if (!session && !isAuthPage) {
-    const url = new URL('/auth/signin', request.url)
-    url.searchParams.set('callbackUrl', encodeURI(request.url))
-    return NextResponse.redirect(url)
+    console.log('Redirecting to signin page');
+    const signInUrl = new URL('/auth/signin', request.url);
+    signInUrl.searchParams.set('callbackUrl', request.url);
+    return NextResponse.redirect(signInUrl);
   }
 
-  // 認証済みかつ認証ページにいる場合
+  // 認証済みユーザーの処理
   if (session && isAuthPage) {
-    return NextResponse.redirect(new URL('/', request.url))
+    console.log('Redirecting authenticated user to home');
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
