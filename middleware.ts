@@ -3,13 +3,6 @@ import type { NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
@@ -24,22 +17,32 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 本番環境とローカル環境の両方のセッショントークンに対応
-  const authCookie = request.cookies.get('next-auth.session-token') || 
-                    request.cookies.get('__Secure-next-auth.session-token');
+  // 環境に応じたCookie名の決定
+  const cookieName = process.env.NODE_ENV === 'production' 
+    ? '__Secure-next-auth.session-token'
+    : 'next-auth.session-token';
 
+  const authCookie = request.cookies.get(cookieName);
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
 
-  // 認証済みの場合、auth ページへのアクセスを '/' にリダイレクト
+  // デバッグ用のログ
+  console.log('Current path:', request.nextUrl.pathname);
+  console.log('Cookie name:', cookieName);
+  console.log('Auth cookie exists:', !!authCookie);
+  console.log('Is auth page:', isAuthPage);
+
   if (authCookie && isAuthPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+    const response = NextResponse.redirect(new URL('/', request.url));
+    return response;
   }
 
-  // 未認証の場合、保護されたルートへのアクセスを '/auth/signin' にリダイレクト
   if (!authCookie && !isAuthPage) {
     const signInUrl = new URL('/auth/signin', request.url);
-    signInUrl.searchParams.set('callbackUrl', request.url);
-    return NextResponse.redirect(signInUrl);
+    // フルURLをcallbackUrlとして設定
+    const callbackUrl = request.url;
+    signInUrl.searchParams.set('callbackUrl', callbackUrl);
+    const response = NextResponse.redirect(signInUrl);
+    return response;
   }
 
   return NextResponse.next();
