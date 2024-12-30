@@ -1,12 +1,21 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { auth } from "@/app/lib/auth";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const session = await auth();
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+}
 
-  // Static resources and API routes bypass
+export function middleware(request: NextRequest) {
+  // 静的アセットは処理をスキップ
   if (
     request.nextUrl.pathname.startsWith('/_next') ||
     request.nextUrl.pathname.startsWith('/api') ||
@@ -15,23 +24,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Not authenticated and trying to access protected route
-  if (!session && !isAuthPage) {
+  const authCookie = request.cookies.get('next-auth.session-token');
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
+
+  // 認証済みの場合、auth ページへのアクセスを '/' にリダイレクト
+  if (authCookie && isAuthPage) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // 未認証の場合、保護されたルートへのアクセスを '/auth/signin' にリダイレクト
+  if (!authCookie && !isAuthPage) {
     const signInUrl = new URL('/auth/signin', request.url);
     signInUrl.searchParams.set('callbackUrl', request.url);
     return NextResponse.redirect(signInUrl);
   }
 
-  // Authenticated and trying to access auth pages
-  if (session && isAuthPage) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
   return NextResponse.next();
-}
-
-export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|.png|.jpg|.jpeg|.gif|.ico).*)',
-  ]
 }

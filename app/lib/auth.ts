@@ -1,10 +1,15 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { prisma } from '@/app/lib/prisma';
 import Google from 'next-auth/providers/google';
-import type { NextAuthConfig } from 'next-auth';
+import { prisma } from '@/app/lib/prisma';
 
-export const authConfig = {
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut
+} = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -18,34 +23,24 @@ export const authConfig = {
       }
     })
   ],
-  adapter: PrismaAdapter(prisma),
+  secret: process.env.AUTH_SECRET,
+  session: {
+    strategy: 'database',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   callbacks: {
     async session({ session, user }) {
       if (session?.user) {
         session.user.id = user.id;
       }
       return session;
-    },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      if (account) {
-        token.accessToken = account.access_token;
-      }
-      return token;
     }
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
     signOut: '/auth/signout'
-  }
-} satisfies NextAuthConfig;
-
-export const { 
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut
-} = NextAuth(authConfig);
+  },
+  debug: process.env.NODE_ENV === 'development'
+});
