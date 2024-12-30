@@ -24,7 +24,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authCookie = request.cookies.get('next-auth.session-token');
+  // 本番環境とローカル環境の両方のセッショントークンに対応
+  const authCookie = request.cookies.get('next-auth.session-token') || 
+                    request.cookies.get('__Secure-next-auth.session-token');
+
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
 
   // 認証済みの場合、auth ページへのアクセスを '/' にリダイレクト
